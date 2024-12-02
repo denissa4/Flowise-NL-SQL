@@ -1,9 +1,12 @@
-import { Tool } from "@langchain/core/tools";
-  import fetch from "node-fetch";
-  import { Pool } from "pg";
+       
+        import { Tool } from "@langchain/core/tools";
+import { query } from "express";
+        import fetch from "node-fetch";
+        import { Pool } from "pg";
+        import { Client, ClientConfig } from 'pg';
 
 
-export const desc = `Use this when you want to POST to a website.
+        export const desc = `Use this when you want to POST to a website.
 Input should be a json string with two keys: "url" and "data".
 The value of "url" should be a string, and the value of "data" should be a dictionary of 
 key-value pairs you want to POST to the url as a JSON body.
@@ -43,15 +46,17 @@ The output will be the text response of the POST request.`
             this.maxOutputLength = args?.maxOutputLength ?? this.maxOutputLength;
           }
         
-          config = {
-            host: process.env.DATABASE_PATH,
-            user: process.env.DATABASE_TYPE,
-            password: process.env.DATABASE_PASSWORD,
-            database: process.env.DATABASE_NAME,
+          
+         config = {
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_DATABASE,
             port: parseInt(process.env.DB_PORT || "5432"),
-            ssl: process.env.DATABASE_SSL === "true",
+            ssl: process.env.DB_SSL === "true",
           };
           
+
         
           pool = new Pool(this.config);
 
@@ -104,3 +109,5 @@ The output will be the text response of the POST request.`
             }
           }
         }
+        
+
