@@ -310,7 +310,7 @@ const ShowStoredChunks = () => {
                             </div>
                             <div style={{ marginRight: 20, display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                                 <IconLanguage style={{ marginRight: 10 }} size={20} />
-                                {getChunksApi.data?.characters?.toLocaleString()} characters
+                                {getChunksApi.data?.file?.totalChars?.toLocaleString()} characters
                             </div>
                         </div>
                     </div>

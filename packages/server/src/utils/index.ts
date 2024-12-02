@@ -12,13 +12,11 @@ import {
     INodeData,
     INodeDependencies,
     INodeDirectedGraph,
-    INodeOverrides,
     INodeQueue,
     IOverrideConfig,
     IReactFlowEdge,
     IReactFlowNode,
     IVariableDict,
-    IVariableOverride,
     IncomingInput
 } from '../Interface'
 import { cloneDeep, get, isEqual } from 'lodash'
@@ -438,8 +436,8 @@ type BuildFlowParams = {
     appDataSource: DataSource
     overrideConfig?: ICommonObject
     apiOverrideStatus?: boolean
-    nodeOverrides?: INodeOverrides
-    variableOverrides?: IVariableOverride[]
+    nodeOverrides?: ICommonObject
+    variableOverrides?: ICommonObject[]
     cachePool?: CachePool
     isUpsert?: boolean
     stopNodeId?: string
@@ -521,7 +519,7 @@ export const buildFlow = async ({
 
             // Only override the config if its status is true
             if (overrideConfig && apiOverrideStatus) {
-                flowNodeData = replaceInputsWithConfig(flowNodeData, overrideConfig, nodeOverrides, variableOverrides)
+                flowNodeData = replaceInputsWithConfig(flowNodeData, overrideConfig, nodeOverrides)
             }
 
             if (isUpsert) upsertHistory['flowData'] = saveUpsertFlowData(flowNodeData, upsertHistory)
@@ -1002,16 +1000,10 @@ export const resolveVariables = async (
  * Loop through each inputs and replace their value with override config values
  * @param {INodeData} flowNodeData
  * @param {ICommonObject} overrideConfig
- * @param {INodeOverrides} nodeOverrides
- * @param {IVariableOverride[]} variableOverrides
+ * @param {ICommonObject} nodeOverrides
  * @returns {INodeData}
  */
-export const replaceInputsWithConfig = (
-    flowNodeData: INodeData,
-    overrideConfig: ICommonObject,
-    nodeOverrides: INodeOverrides,
-    variableOverrides: IVariableOverride[]
-) => {
+export const replaceInputsWithConfig = (flowNodeData: INodeData, overrideConfig: ICommonObject, nodeOverrides: ICommonObject) => {
     const types = 'inputs'
 
     const isParameterEnabled = (nodeType: string, paramName: string): boolean => {
@@ -1022,40 +1014,11 @@ export const replaceInputsWithConfig = (
 
     const getParamValues = (inputsObj: ICommonObject) => {
         for (const config in overrideConfig) {
-            /**
-             * Several conditions:
-             * 1. If config is 'analytics', always allow it
-             * 2. If config is 'vars', check its object and filter out the variables that are not enabled for override
-             * 3. If typeof config is an object, check if the node id is in the overrideConfig object and if the parameter (systemMessagePrompt) is enabled
-             * Example:
-             * "systemMessagePrompt": {
-             *  "chatPromptTemplate_0": "You are an assistant"
-             * }
-             * 4. If typeof config is a string, check if the parameter is enabled
-             * Example:
-             * "systemMessagePrompt": "You are an assistant"
-             */
-
-            if (config === 'analytics') {
-                // pass
-            } else if (config === 'vars') {
-                if (typeof overrideConfig[config] === 'object') {
-                    const filteredVars: ICommonObject = {}
-
-                    const vars = overrideConfig[config]
-                    for (const variable in vars) {
-                        const override = variableOverrides.find((v) => v.name === variable)
-                        if (!override?.enabled) {
-                            continue // Skip this variable if it's not enabled for override
-                        }
-                        filteredVars[variable] = vars[variable]
-                    }
-                    overrideConfig[config] = filteredVars
-                }
-            } else if (overrideConfig[config] && typeof overrideConfig[config] === 'object') {
+            // If overrideConfig[key] is object
+            if (overrideConfig[config] && typeof overrideConfig[config] === 'object') {
                 const nodeIds = Object.keys(overrideConfig[config])
                 if (nodeIds.includes(flowNodeData.id)) {
-                    // Check if this parameter is enabled
+                    // Check if this parameter is enabled for this node type
                     if (isParameterEnabled(flowNodeData.label, config)) {
                         inputsObj[config] = overrideConfig[config][flowNodeData.id]
                     }
@@ -1068,11 +1031,11 @@ export const replaceInputsWithConfig = (
                      */
                     continue
                 }
-            } else {
-                // Only proceed if the parameter is enabled
-                if (!isParameterEnabled(flowNodeData.label, config)) {
-                    continue
-                }
+            }
+
+            // Only proceed if the parameter is enabled for this node type
+            if (!isParameterEnabled(flowNodeData.label, config)) {
+                continue
             }
 
             let paramValue = inputsObj[config]
@@ -1678,12 +1641,9 @@ export const aMonthAgo = () => {
 export const getAPIOverrideConfig = (chatflow: IChatFlow) => {
     try {
         const apiConfig = chatflow.apiConfig ? JSON.parse(chatflow.apiConfig) : {}
-        const nodeOverrides: INodeOverrides =
-            apiConfig.overrideConfig && apiConfig.overrideConfig.nodes ? apiConfig.overrideConfig.nodes : {}
-        const variableOverrides: IVariableOverride[] =
-            apiConfig.overrideConfig && apiConfig.overrideConfig.variables ? apiConfig.overrideConfig.variables : []
-        const apiOverrideStatus: boolean =
-            apiConfig.overrideConfig && apiConfig.overrideConfig.status ? apiConfig.overrideConfig.status : false
+        const nodeOverrides = apiConfig.overrideConfig && apiConfig.overrideConfig.nodes ? apiConfig.overrideConfig.nodes : {}
+        const variableOverrides = apiConfig.overrideConfig && apiConfig.overrideConfig.variables ? apiConfig.overrideConfig.variables : []
+        const apiOverrideStatus = apiConfig.overrideConfig && apiConfig.overrideConfig.status ? apiConfig.overrideConfig.status : false
 
         return { nodeOverrides, variableOverrides, apiOverrideStatus }
     } catch (error) {

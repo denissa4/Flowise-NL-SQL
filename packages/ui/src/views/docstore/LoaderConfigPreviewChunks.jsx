@@ -186,9 +186,9 @@ const LoaderConfigPreviewChunks = () => {
             setLoading(true)
             const config = prepareConfig()
             try {
-                const saveResp = await documentStoreApi.saveProcessingLoader(config)
+                const processResp = await documentStoreApi.processChunks(config)
                 setLoading(false)
-                if (saveResp.data) {
+                if (processResp.data) {
                     enqueueSnackbar({
                         message: 'File submitted for processing. Redirecting to Document Store..',
                         options: {
@@ -201,8 +201,6 @@ const LoaderConfigPreviewChunks = () => {
                             )
                         }
                     })
-                    // don't wait for the process to complete, redirect to document store
-                    documentStoreApi.processLoader(config, saveResp.data?.id)
                     navigate('/document-stores/' + storeId)
                 }
             } catch (error) {

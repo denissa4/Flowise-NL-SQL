@@ -47,7 +47,7 @@ class ChatOpenAI_ChatModels implements INode {
                 name: 'modelName',
                 type: 'asyncOptions',
                 loadMethod: 'listModels',
-                default: 'gpt-4o-mini'
+                default: 'gpt-3.5-turbo'
             },
             {
                 label: 'Temperature',
